@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package protos;
+
+import "google/protobuf/timestamp.proto";
+import "run.proto";
+
+option go_package = "github.com/getsynq/entity-status-api/protos";
+
+service EntityStatusService {
+  // Insert the run and consume the status update.
+  rpc InsertRun(InsertRunRequest) returns (InsertRunResponse) {}
+  // Get the statuses of entities by their paths.
+  rpc BatchGetEntityStatus(BatchGetEntityStatusRequest) returns (BatchGetEntityStatusResponse) {}
+  // Get a summary of the status of entities.
+  rpc GetEntityStatusSummary(GetEntityStatusSummaryRequest) returns (GetEntityStatusSummaryResponse) {}
+}
+
+message InsertRunRequest {
+  Run run = 1;
+}
+
+message InsertRunResponse {}
+
+message EntityStatus {
+  string path = 1;
+  bool is_deleted = 2;
+  Status status = 3;
+  google.protobuf.Timestamp last_at = 4;
+}
+
+message BatchGetEntityStatusRequest {
+  repeated string paths = 1;
+}
+
+message BatchGetEntityStatusResponse {
+  map<string, EntityStatus> statuses = 1;
+}
+
+message GetEntityStatusSummaryRequest {
+  repeated string paths = 1; // empty list == all
+}
+
+message SummaryItem {
+  Status status = 1;
+  int32 count = 2;
+}
+
+message GetEntityStatusSummaryResponse {
+  repeated SummaryItem summary = 1;
+}

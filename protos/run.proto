@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package protos;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/getsynq/entity-status-api/protos";
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OK = 1;
+  STATUS_WARN = 2;
+  STATUS_ERROR = 3;
+  STATUS_FATAL = 4;
+}
+
+message Run {
+  string process_id = 1;
+  string direct_path = 2; // the paths of the entities directly affected by this run
+  repeated string indirect_paths = 3; // the paths of the entities indirectly affected by this run
+  Status status = 4; // status of this run
+  google.protobuf.Timestamp at = 5; // timestamp of when this run occured
+  bool is_deletion = 6; // boolean flag to specify deletion
+}

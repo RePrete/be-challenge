@@ -10,6 +10,7 @@ import (
     "google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// RunRecord represent the status of a path, as reported from a process, at a specific timestamp
 type RunRecord struct {
     Path       string    `gorm:primary_key`
     At         time.Time `gorm:primary_key`
@@ -65,6 +66,7 @@ func (r AggregatePostgresRepository) GetCurrentStatus(ctx context.Context, paths
     return result, err
 }
 
+// AggregateEntityProcessStatus represent the last path status reported by a process
 type AggregateEntityProcessStatus struct {
     ProcessId string `gorm:"index:aggregate_id,unique"`
     Path      string `gorm:"index:aggregate_id,unique"`
@@ -72,17 +74,12 @@ type AggregateEntityProcessStatus struct {
     At        time.Time
 }
 
-func (r AggregatePostgresRepository) Upsert(ctx context.Context, processId, path string, status int, at time.Time) error {
+func (r AggregatePostgresRepository) Upsert(ctx context.Context, aggregate AggregateEntityProcessStatus) error {
     return r.db.Clauses(clause.OnConflict{
         Columns: []clause.Column{
             {Name: "process_id"},
             {Name: "path"},
         },
         UpdateAll: true,
-    }).Create(&AggregateEntityProcessStatus{
-        ProcessId: processId,
-        Path:      path,
-        Status:    status,
-        At:        at,
-    }).Error
+    }).Create(aggregate).Error
 }

@@ -28,7 +28,7 @@ type RunRepository interface {
 
 type AggregateRepository interface {
     GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error)
-    Upsert(ctx context.Context, processId, path string, status int, at time.Time) error
+    Upsert(ctx context.Context, aggregate AggregateEntityProcessStatus) error
 }
 
 func NewEntityStatusService(run RunRepository, entity AggregateRepository) *EntityStatusService {
@@ -86,13 +86,25 @@ func (e *EntityStatusService) InsertRun(ctx context.Context, run *RunModel) erro
         return err
     }
 
+    if run.IsDeletion {
+        // deletion are not going to update the aggregate
+        return nil
+    }
+
     affectedPaths := slices.Concat([]string{run.DirectPath}, run.IndirectPaths)
     for _, path := range affectedPaths {
+        // The aggregate represent the relation between a path and the process watching it
+        // this projection should be performed async in an event sourcing way
         e.AggregateEntityProcessStatus(ctx, run.ProcessId, path, run.Status, run.At)
     }
     return nil
 }
 
 func (e *EntityStatusService) AggregateEntityProcessStatus(ctx context.Context, process, path string, status int, at time.Time) error {
-    return e.entityRepository.Upsert(ctx, process, path, status, at)
+    return e.entityRepository.Upsert(ctx, AggregateEntityProcessStatus{
+        ProcessId: process,
+        Path:      path,
+        Status:    status,
+        At:        at,
+    })
 }

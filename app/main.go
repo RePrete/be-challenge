@@ -1,30 +1,32 @@
 package main
 
 import (
-    "context"
     "fmt"
     "log"
     "net"
     "os"
 
-    "github.com/aws/aws-sdk-go-v2/aws"
-    "github.com/aws/aws-sdk-go-v2/config"
-    "github.com/aws/aws-sdk-go-v2/service/dynamodb"
-    "github.com/getsynq/entity-status-api/app/internal/run"
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+
+    "github.com/RePrete/entity-status-api/app/internal/run"
+    _ "github.com/lib/pq"
 
     "google.golang.org/grpc"
 
-    "github.com/getsynq/entity-status-api/protos"
+    "github.com/RePrete/entity-status-api/protos"
 )
 
 func main() {
-    ctx := context.Background()
+    //ctx := context.Background()
     port := os.Getenv("PORT")
     if len(port) == 0 {
         port = "8080"
     }
 
-    dynamo := CreateDynamoDBClient(ctx)
+    db := CreatePostgresConnection()
+    db.AutoMigrate(&run.RunRecord{})
+    db.AutoMigrate(&run.EntityStatusProjection{})
 
     lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
     if err != nil {
@@ -36,26 +38,44 @@ func main() {
         grpcServer,
         NewEntityStatusApi(
             run.NewEntityStatusService(
-                run.NewRunDynamoDB(dynamo),
+                run.NewRunPostgresRepository(db),
+                run.NewEntityPostgresRepository(db),
             ),
         ),
     )
     grpcServer.Serve(lis)
 }
 
-func CreateDynamoDBClient(ctx context.Context) *dynamodb.Client {
-    cfg, err := config.LoadDefaultConfig(ctx,
-        config.WithRegion("us-east-1"),
-        config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-            return aws.Endpoint{
-                URL: "localhost:8000",
-            }, nil
-        })),
-    )
-
+func CreatePostgresConnection() *gorm.DB {
+    //host := os.Getenv("POSTGRES_HOST")
+    //port := os.Getenv("POSTGRES_PORT")
+    //user := os.Getenv("POSTGRES_USER")
+    //password := os.Getenv("POSTGRES_PASSWORD")
+    //dbname := os.Getenv("POSTGRES_DB")
+    //
+    //dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+    dsn := "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=entitystatus sslmode=disable"
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
     if err != nil {
-        panic(err)
+        log.Fatalf("Error connecting to the database: %v", err)
     }
 
-    return dynamodb.NewFromConfig(cfg)
+    migrator := db.Migrator()
+
+    // Check if table exists
+    if !migrator.HasTable(&run.EntityStatusProjection{}) {
+        // Create table
+        err := migrator.CreateTable(&run.EntityStatusProjection{})
+        if err != nil {
+            panic("failed to create table")
+        }
+    }
+    if !migrator.HasTable(&run.RunRecord{}) {
+        err := migrator.CreateTable(&run.RunRecord{})
+        if err != nil {
+            panic("failed to create table")
+        }
+    }
+
+    return db
 }

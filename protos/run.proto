@@ -4,7 +4,7 @@ package protos;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/getsynq/entity-status-api/protos";
+option go_package = "github.com/RePrete/entity-status-api/protos";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;

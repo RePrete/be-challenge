@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULE="github.com/getsynq/entity-status-api/protos"
+MODULE="github.com/RePrete/entity-status-api/protos"
 GEN_DIR="gen/golang"
 
 rm -rf $GEN_DIR

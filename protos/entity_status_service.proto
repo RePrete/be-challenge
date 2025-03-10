@@ -5,7 +5,7 @@ package protos;
 import "google/protobuf/timestamp.proto";
 import "run.proto";
 
-option go_package = "github.com/getsynq/entity-status-api/protos";
+option go_package = "github.com/RePrete/entity-status-api/protos";
 
 service EntityStatusService {
   // Insert the run and consume the status update.

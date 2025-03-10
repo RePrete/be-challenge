@@ -13,7 +13,7 @@ proto:
 	docker run --rm -v $(PWD):/app entity-status-api:latest sh /app/generate.sh
 
 up:
-	docker-compose up -d
+	docker-compose up --force-recreate
 
 down:
 	docker-compose down

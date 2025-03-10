@@ -24,16 +24,14 @@ type StatusModel struct {
 
 type RunRepository interface {
     CreateRuns(ctx context.Context, records []RunRecord) error
-    GetRunsWorstStatusGroupedByPath(ctx context.Context, id string, since *time.Time, includeDeleted bool) (*RunRecord, error)
 }
 
-type EntityRepository interface {
-    GetEntityStatus(ctx context.Context, path string) (*EntityStatusProjection, error)
-    GetEntitiesStatus(ctx context.Context, paths []string) ([]*EntityStatusProjection, error)
-    Upsert(ctx context.Context, entity *EntityStatusProjection) error
+type AggregateRepository interface {
+    GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error)
+    Upsert(ctx context.Context, processId, path string, status int, at time.Time) error
 }
 
-func NewEntityStatusService(run RunRepository, entity EntityRepository) *EntityStatusService {
+func NewEntityStatusService(run RunRepository, entity AggregateRepository) *EntityStatusService {
     return &EntityStatusService{
         runRepository:    run,
         entityRepository: entity,
@@ -42,19 +40,19 @@ func NewEntityStatusService(run RunRepository, entity EntityRepository) *EntityS
 
 type EntityStatusService struct {
     runRepository    RunRepository
-    entityRepository EntityRepository
+    entityRepository AggregateRepository
 }
 
 func (e *EntityStatusService) BatchGetEntityStatus(ctx context.Context, paths []string) (map[string]StatusModel, error) {
-    entities, err := e.entityRepository.GetEntitiesStatus(ctx, paths)
+    entities, err := e.entityRepository.GetCurrentStatus(ctx, paths)
     if err != nil {
         return nil, err
     }
 
     result := map[string]StatusModel{}
     for _, record := range entities {
-        result[record.ID] = StatusModel{
-            Path:       record.ID,
+        result[record.Path] = StatusModel{
+            Path:       record.Path,
             Status:     record.Status,
             IsDeletion: false,
             At:         record.At,
@@ -90,38 +88,11 @@ func (e *EntityStatusService) InsertRun(ctx context.Context, run *RunModel) erro
 
     affectedPaths := slices.Concat([]string{run.DirectPath}, run.IndirectPaths)
     for _, path := range affectedPaths {
-        e.ProjectEntityStatus(ctx, path)
+        e.AggregateEntityProcessStatus(ctx, run.ProcessId, path, run.Status, run.At)
     }
     return nil
 }
 
-func (e *EntityStatusService) ProjectEntityStatus(ctx context.Context, path string) {
-    entity, err := e.entityRepository.GetEntityStatus(nil, path)
-    if err != nil {
-        // something has to be done here
-        return
-    }
-
-    var at *time.Time
-    if entity != nil {
-        at = &entity.At
-    } else {
-        entity = &EntityStatusProjection{
-            ID:     path,
-            Status: 0,
-        }
-    }
-
-    runs, err := e.runRepository.GetRunsWorstStatusGroupedByPath(ctx, path, at, false)
-    if err != nil || runs == nil {
-        return
-    }
-
-    entity.Status = runs.Status
-    entity.At = runs.At
-
-    err = e.entityRepository.Upsert(ctx, entity)
-    if err != nil {
-        return
-    }
+func (e *EntityStatusService) AggregateEntityProcessStatus(ctx context.Context, process, path string, status int, at time.Time) error {
+    return e.entityRepository.Upsert(ctx, process, path, status, at)
 }

@@ -26,7 +26,7 @@ func main() {
 
     db := CreatePostgresConnection()
     db.AutoMigrate(&run.RunRecord{})
-    db.AutoMigrate(&run.EntityStatusProjection{})
+    db.AutoMigrate(&run.AggregatePostgresRepository{})
 
     lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
     if err != nil {
@@ -39,7 +39,7 @@ func main() {
         NewEntityStatusApi(
             run.NewEntityStatusService(
                 run.NewRunPostgresRepository(db),
-                run.NewEntityPostgresRepository(db),
+                run.NewAggregatePostgresRepository(db),
             ),
         ),
     )
@@ -63,15 +63,14 @@ func CreatePostgresConnection() *gorm.DB {
     migrator := db.Migrator()
 
     // Check if table exists
-    if !migrator.HasTable(&run.EntityStatusProjection{}) {
-        // Create table
-        err := migrator.CreateTable(&run.EntityStatusProjection{})
+    if !migrator.HasTable(&run.RunRecord{}) {
+        err := migrator.CreateTable(&run.RunRecord{})
         if err != nil {
             panic("failed to create table")
         }
     }
-    if !migrator.HasTable(&run.RunRecord{}) {
-        err := migrator.CreateTable(&run.RunRecord{})
+    if !migrator.HasTable(&run.AggregateEntityProcessStatus{}) {
+        err := migrator.CreateTable(&run.AggregateEntityProcessStatus{})
         if err != nil {
             panic("failed to create table")
         }

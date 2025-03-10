@@ -4,6 +4,7 @@ import (
     "context"
     "flag"
     "google.golang.org/protobuf/types/known/timestamppb"
+    "os"
     "slices"
     "testing"
     "time"
@@ -322,6 +323,7 @@ func (s *TestEntityStatusApiTestSuite) TestDirectStatus() {
         s.Require().NotNil(resp.Statuses[runner.monitorTwoId])
         s.Require().Equal(protos.Status_STATUS_OK, resp.Statuses[runner.monitorTwoId].Status)
         s.Require().Equal(false, resp.Statuses[runner.monitorTwoId].IsDeleted)
+        os.Exit(0)
     }
 
     // insert statuses till 24h

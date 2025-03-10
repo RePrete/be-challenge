@@ -15,11 +15,11 @@ func TestEntityPostgresRepository_Upsert(t *testing.T) {
     db, _ := gorm.Open(postgres.Open(dsn), &gorm.Config{})
     sut := EntityStatusService{
         runRepository:    RunPostgresRepository{db: db},
-        entityRepository: EntityPostgresRepository{db: db},
+        entityRepository: AggregatePostgresRepository{db: db},
     }
 
     sut.ProjectEntityStatus(ctx, "m1")
-    //sut := EntityPostgresRepository{
+    //sut := AggregatePostgresRepository{
     //    db: db,
     //}
     //migrator := db.Migrator()

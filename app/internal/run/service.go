@@ -22,6 +22,11 @@ type StatusModel struct {
     At         time.Time
 }
 
+type StatusSummaryModel struct {
+    Status int
+    Count  int
+}
+
 type RunRepository interface {
     CreateRuns(ctx context.Context, records []RunRecord) error
 }
@@ -29,6 +34,7 @@ type RunRepository interface {
 type AggregateRepository interface {
     GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error)
     Upsert(ctx context.Context, aggregate AggregateEntityProcessStatus) error
+    GetEntityStatusSummary(ctx context.Context, paths []string) ([]*StatusCount, error)
 }
 
 func NewEntityStatusService(run RunRepository, entity AggregateRepository) *EntityStatusService {
@@ -107,4 +113,21 @@ func (e *EntityStatusService) AggregateEntityProcessStatus(ctx context.Context, 
         Status:    status,
         At:        at,
     })
+}
+
+func (e *EntityStatusService) GetEntityStatusSummary(ctx context.Context, paths []string) ([]StatusSummaryModel, error) {
+    result := []StatusSummaryModel{}
+
+    statuses, err := e.entityRepository.GetEntityStatusSummary(ctx, paths)
+    if err != nil {
+        return result, err
+    }
+
+    for _, status := range statuses {
+        result = append(result, StatusSummaryModel{
+            Status: status.Status,
+            Count:  status.Count,
+        })
+    }
+    return result, nil
 }

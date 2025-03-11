@@ -2,6 +2,7 @@ package run
 
 import (
     "context"
+    "fmt"
     "gorm.io/gorm/clause"
     "time"
 
@@ -18,6 +19,12 @@ type RunRecord struct {
     Status     int
     IsIndirect bool
     IsDeletion bool
+}
+
+// StatusCount is a DTO returned from repo layer, not a db record itself
+type StatusCount struct {
+    Status int
+    Count  int
 }
 
 func timestampToRecord(ts *timestamppb.Timestamp) string {
@@ -53,6 +60,34 @@ func NewAggregatePostgresRepository(db *gorm.DB) *AggregatePostgresRepository {
 
 type AggregatePostgresRepository struct {
     db *gorm.DB
+}
+
+func (r AggregatePostgresRepository) GetEntityStatusSummary(ctx context.Context, paths []string) ([]*StatusCount, error) {
+    result := []*StatusCount{}
+
+    sql := `
+        SELECT t1.status, COUNT(t1.status) as count
+        FROM (
+            SELECT path, MAX(status) as status
+            FROM aggregate_entity_process_statuses %s
+            GROUP BY path
+        ) as t1
+        GROUP BY t1.status
+    `
+    args := []interface{}{}
+    whereCondition := ""
+    if len(paths) > 0 {
+        whereCondition = " AND t1.path IN (?)"
+        args = append(args, paths)
+    }
+    sql = fmt.Sprintf(sql, whereCondition)
+
+    err := r.db.Raw(sql, args...).Scan(&result).Error
+
+    if err != nil {
+        return result, err
+    }
+    return result, nil
 }
 
 func (r AggregatePostgresRepository) GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error) {

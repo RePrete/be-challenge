@@ -80,6 +80,24 @@ func newPbStatusFromModel(status int) protos.Status {
 }
 
 func (e EntityStatusApi) GetEntityStatusSummary(ctx context.Context, request *protos.GetEntityStatusSummaryRequest) (*protos.GetEntityStatusSummaryResponse, error) {
-    //TODO implement me
-    panic("implement me")
+    if request == nil {
+        return nil, fmt.Errorf("request is nil")
+    }
+    paths := request.Paths
+
+    summaries, err := e.service.GetEntityStatusSummary(ctx, paths)
+    if err != nil {
+        return &protos.GetEntityStatusSummaryResponse{}, err
+    }
+
+    result := []*protos.SummaryItem{}
+    for _, s := range summaries {
+        result = append(result, &protos.SummaryItem{
+            Status: newPbStatusFromModel(s.Status),
+            Count:  int32(s.Count),
+        })
+    }
+    return &protos.GetEntityStatusSummaryResponse{
+        Summary: result,
+    }, nil
 }

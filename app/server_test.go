@@ -185,7 +185,7 @@ func (s *TestEntityStatusApiTestSuite) insertRuns(runner *Runner, hours []int) {
 
     if slices.Contains(hours, 18) {
         // 18h : process 1 - ERROR
-        at := runner.t0.Add(-time.Hour * 18)
+        at := runner.t0.Add(time.Hour * 18)
         {
             _, err := s.client.InsertRun(ctx, &protos.InsertRunRequest{
                 Run: &protos.Run{
@@ -202,7 +202,7 @@ func (s *TestEntityStatusApiTestSuite) insertRuns(runner *Runner, hours []int) {
 
     if slices.Contains(hours, 24) {
         // 24h : process 1 - ERROR, process 2 - OK
-        at := runner.t0.Add(-time.Hour * 24)
+        at := runner.t0.Add(time.Hour * 24)
         {
             _, err := s.client.InsertRun(ctx, &protos.InsertRunRequest{
                 Run: &protos.Run{
@@ -242,7 +242,7 @@ func (s *TestEntityStatusApiTestSuite) insertRuns(runner *Runner, hours []int) {
 
     if slices.Contains(hours, 25) {
         // 25h : process 1 - deleted
-        at := runner.t0.Add(-time.Hour * 25)
+        at := runner.t0.Add(time.Hour * 25)
         {
             _, err := s.client.InsertRun(ctx, &protos.InsertRunRequest{
                 Run: &protos.Run{
@@ -260,7 +260,7 @@ func (s *TestEntityStatusApiTestSuite) insertRuns(runner *Runner, hours []int) {
 
     if slices.Contains(hours, 36) {
         // 36h : process 2 - OK
-        at := runner.t0.Add(-time.Hour * 36)
+        at := runner.t0.Add(time.Hour * 36)
         {
             _, err := s.client.InsertRun(ctx, &protos.InsertRunRequest{
                 Run: &protos.Run{
@@ -277,7 +277,7 @@ func (s *TestEntityStatusApiTestSuite) insertRuns(runner *Runner, hours []int) {
 
     if slices.Contains(hours, 48) {
         // 48h : process 2 - ERROR
-        at := runner.t0.Add(-time.Hour * 48)
+        at := runner.t0.Add(time.Hour * 48)
         {
             _, err := s.client.InsertRun(ctx, &protos.InsertRunRequest{
                 Run: &protos.Run{
@@ -417,7 +417,7 @@ func (s *TestEntityStatusApiTestSuite) TestSummary() {
 
         s.Require().Len(resp.Summary, 1)
         s.Require().Equal(protos.Status_STATUS_OK, resp.Summary[0].Status)
-        s.Require().Equal(3, resp.Summary[0].Count)
+        s.Require().Equal(int32(3), resp.Summary[0].Count)
     }
 
     // insert statuses till 12h
@@ -433,9 +433,9 @@ func (s *TestEntityStatusApiTestSuite) TestSummary() {
             summaries[summary.Status] = summary
         }
         s.Require().NotNil(summaries[protos.Status_STATUS_FATAL])
-        s.Require().Equal(2, summaries[protos.Status_STATUS_FATAL].Count)
+        s.Require().Equal(int32(2), summaries[protos.Status_STATUS_FATAL].Count)
         s.Require().NotNil(summaries[protos.Status_STATUS_OK])
-        s.Require().Equal(1, summaries[protos.Status_STATUS_OK].Count)
+        s.Require().Equal(int32(1), summaries[protos.Status_STATUS_OK].Count)
     }
 
     // insert statuses till 24h
@@ -451,9 +451,9 @@ func (s *TestEntityStatusApiTestSuite) TestSummary() {
             summaries[summary.Status] = summary
         }
         s.Require().NotNil(summaries[protos.Status_STATUS_ERROR])
-        s.Require().Equal(2, summaries[protos.Status_STATUS_ERROR].Count)
+        s.Require().Equal(int32(2), summaries[protos.Status_STATUS_ERROR].Count)
         s.Require().NotNil(summaries[protos.Status_STATUS_OK])
-        s.Require().Equal(1, summaries[protos.Status_STATUS_OK].Count)
+        s.Require().Equal(int32(1), summaries[protos.Status_STATUS_OK].Count)
     }
 
     // insert statuses till 48h
@@ -465,6 +465,6 @@ func (s *TestEntityStatusApiTestSuite) TestSummary() {
 
         s.Require().Len(resp.Summary, 1)
         s.Require().Equal(protos.Status_STATUS_ERROR, resp.Summary[0].Status)
-        s.Require().Equal(2, resp.Summary[0].Count)
+        s.Require().Equal(int32(2), resp.Summary[0].Count)
     }
 }

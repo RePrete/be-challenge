@@ -32,7 +32,7 @@ type RunRepository interface {
 }
 
 type AggregateRepository interface {
-    GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error)
+    GetCurrentStatus(ctx context.Context, paths []string, useB bool) ([]*AggregateEntityProcessStatus, error)
     Upsert(ctx context.Context, aggregate AggregateEntityProcessStatus) error
     GetEntityStatusSummary(ctx context.Context, paths []string) ([]*StatusCount, error)
 }
@@ -50,7 +50,7 @@ type EntityStatusService struct {
 }
 
 func (e *EntityStatusService) BatchGetEntityStatus(ctx context.Context, paths []string) (map[string]StatusModel, error) {
-    entities, err := e.entityRepository.GetCurrentStatus(ctx, paths)
+    entities, err := e.entityRepository.GetCurrentStatus(ctx, paths, false)
     if err != nil {
         return nil, err
     }

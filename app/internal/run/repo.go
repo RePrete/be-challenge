@@ -90,7 +90,14 @@ func (r AggregatePostgresRepository) GetEntityStatusSummary(ctx context.Context,
     return result, nil
 }
 
-func (r AggregatePostgresRepository) GetCurrentStatus(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error) {
+func (r AggregatePostgresRepository) GetCurrentStatus(ctx context.Context, paths []string, useB bool) ([]*AggregateEntityProcessStatus, error) {
+    if useB {
+        return r.GetCurrentStatus_AlternativeB(ctx, paths)
+    }
+    return r.GetCurrentStatus_AlternativeA(ctx, paths)
+}
+
+func (r AggregatePostgresRepository) GetCurrentStatus_AlternativeA(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error) {
     result := []*AggregateEntityProcessStatus{}
 
     err := r.db.Select("path, MAX(status) as status").
@@ -98,6 +105,22 @@ func (r AggregatePostgresRepository) GetCurrentStatus(ctx context.Context, paths
         Where("path IN (?)", paths).
         Group("path").
         Scan(&result).Error
+    return result, err
+}
+
+func (r AggregatePostgresRepository) GetCurrentStatus_AlternativeB(ctx context.Context, paths []string) ([]*AggregateEntityProcessStatus, error) {
+    result := []*AggregateEntityProcessStatus{}
+
+    err := r.db.Raw(`
+        SELECT t1.path, MAX(r.status) as status
+        FROM (SELECT path, process_id, MAX(at) as at
+              FROM run_records
+              WHERE path IN (?)
+              GROUP BY path, process_id) as t1
+        LEFT JOIN run_records r
+        ON t1.path = r.path AND t1.process_id = r.process_id AND t1.at = r.at
+        GROUP BY t1.path
+    `, paths).Scan(&result).Error
     return result, err
 }
 
